@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use Stateful::Tailer;
 
-plan tests => 3;
+plan tests => 5;
 
 my $now = time;
 my $state_path = "/tmp/st_$now.state";
@@ -32,12 +32,40 @@ my $tailer = Stateful::Tailer->new(
     )
 );
 
+# Should produce 3 ok tests via callback.
 $fh1->print("include_me 123\n");
 $fh2->print("include_me 1234568888\n");
 $fh1->print("include_me 123456\n");
 $fh1->print("123 exclude_me\n");
 $fh2->print("123456 exclude_me\n");
+$fh1->print("ignored\n");
+
+#
+# Test loading from state file.
+#
+$tailer = Stateful::Tailer->new(
+    files            => [ $file1, $file2 ],
+    state_file       => $state_path,
+    include_patterns => [ '^include_me' ],
+    exclude_patterns => [ 'exclude_me$' ],
+    read_callback    => (
+        sub {
+            my $lines = shift;
+
+            # Each matched line equates to one test.
+            ok($_ =~ /^include_me/) for @{$lines};
+        }
+    )
+);
+
+# Should produce 2 ok tests via callback.
+$fh1->print("123 exclude_me\n");
+$fh1->print("include_me 123\n");
+$fh2->print("123456 exclude_me\n");
+$fh2->print("include_me 1234568888\n");
+$fh2->print("123456 exclude_me\n");
+$fh2->print("ignored\n");
 
 $tailer->read;
 
-unlink($_) for qw/$file1 $file2 $state_path/;
+#unlink($_) for qw/$file1 $file2 $state_path/;

@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use YAML qw/DumpFile thaw/;
+use YAML qw/DumpFile LoadFile/;
 use Stateful::Tailer::Exception;
 use Stateful::Tailer::File;
 
@@ -112,6 +112,10 @@ sub read {
     $self->{_read_cb}->(\@lines) if defined $self->{_read_cb};
 }
 
+sub close_files {
+    $_->close_file for values %{shift->{_files}};
+}
+
 sub _load_files {
     my ($self, $file_paths) = @_;
     $self->{_files}->{$_} = Stateful::Tailer::File->new($_)
@@ -124,7 +128,7 @@ sub _load_state {
 
     if(-f $self->{_state_path}) {
         eval {
-            $self->{_state} = thaw($self->{_state_path});
+            $self->{_state} = LoadFile($self->{_state_path});
         };
 
         if($@) {
@@ -132,7 +136,7 @@ sub _load_state {
                 "could not load state from $self->{_state_path}: $@");
         }
 
-        $_->load_from_state($self->{_state}) for @{$self->{_files}};
+        $_->load_from_state($self->{_state}) for values %{$self->{_files}};
     }
     else {
         #
@@ -164,8 +168,7 @@ sub _save_state {
 }
 
 sub DESTROY {
-    my $self = shift;
-    $_->close_file for values %{$self->{_files}};
+    shift->close_files;
 }
 
 =head1 AUTHOR
