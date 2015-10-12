@@ -10,7 +10,7 @@ use Stateful::Tailer::File;
 
 =head1 NAME
 
-Stateful::Tailer - Tail multiple files and keep state in between invocations.
+Stateful::Tailer - Tail multiple files and keep state between invocations.
 
 =head1 VERSION
 
@@ -23,7 +23,7 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-Tail multiple files and keep state in between invocations.
+Tail multiple files and keep state between invocations.
 
     use Stateful::Tailer;
 
@@ -42,9 +42,43 @@ Tail multiple files and keep state in between invocations.
 
     $tailer->read;
 
+This module is completely object-oriented, with minimal dependencies (eg only YAML at this stage).
+
 =head1 SUBROUTINES/METHODS
 
 =head2 new
+
+Constructor for the Stateful::Tailer class. On construction, the state file is automatically loaded or created if it does not exist.
+
+=head3 parameters
+
+=over 4
+
+=item files I<required>
+
+An ARRAY ref of file paths to tail.
+
+=item state_file I<required>
+
+The path to the state file in which the state of each tailed file is recorded in YAML. If the specified file does not exist, it will be created automatically.
+
+=item include_patterns
+
+An ARRAY ref of regular expressions to which all returned lines must match. If this parameter is specified, any lines that do not match an expression in the list will be silently ignored.
+
+=item exclude_patterns
+
+An ARRAY ref of regular expressions. Any line matching an expression in this list will be ignored, including those lines that match expressions in B<include_patterns> (if specified).
+
+=item read_callback
+
+The callback to be invoked (once per file) on read with the filtered lines. This callback is invoked with an ARRAY ref as a single argument. The callback will not be invoked if there are no lines.
+
+=item debug
+
+Print diagnostic messages to STDERR.
+
+=back
 
 =cut
 
@@ -72,6 +106,10 @@ sub new {
 }
 
 =head2 read
+
+Read all lines from the specified files starting from the last saved position. If the state file does not exist, start reading from the beginning. The state is then saved after all files are read.
+
+The specified files are processed in sequence.
 
 =cut
 
@@ -110,12 +148,23 @@ sub read {
     $self->_save_state;
 
     # Invoke callback with the filtered lines.
-    $self->{_read_cb}->(\@lines) if defined $self->{_read_cb};
+    $self->{_read_cb}->(\@lines)
+        if @lines > 0 and defined $self->{_read_cb};
 }
+
+=head2 close_files
+
+Close all configured files. This is called automatically on destruction.
+
+=cut
 
 sub close_files {
     $_->close_file for values %{shift->{_files}};
 }
+
+#
+# Private functions.
+#
 
 sub _load_files {
     my ($self, $file_paths) = @_;
@@ -176,10 +225,10 @@ sub DESTROY {
 
 Mikey Austin, C<< <mikey at jackiemclean.net> >>
 
+
 =head1 BUGS
 
 Please report any bugs or feature requests to the author's email address.
-
 
 
 =head1 SUPPORT
@@ -187,32 +236,6 @@ Please report any bugs or feature requests to the author's email address.
 You can find documentation for this module with the perldoc command.
 
     perldoc Stateful::Tailer
-
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker (report bugs here)
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Stateful-Tailer>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Stateful-Tailer>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Stateful-Tailer>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Stateful-Tailer/>
-
-=back
-
-
-=head1 ACKNOWLEDGEMENTS
 
 
 =head1 LICENSE AND COPYRIGHT
