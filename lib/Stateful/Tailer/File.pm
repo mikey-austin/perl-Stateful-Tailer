@@ -33,24 +33,7 @@ sub new {
     };
     bless $self, $class;
 
-    $self->_load_stat;
-
     return $self;
-}
-
-sub read_lines {
-    my $self = shift;
-
-    $self->_check_handle;
-    my @lines = readline($self->{_fh})
-        or die Stateful::Tailer::Exception->new(
-            "could not readline from $self->{_path}");
-
-    # Update file state.
-    $self->{_pos} = $self->{_fh}->tell;
-    $self->_load_stat;
-
-    return \@lines;
 }
 
 sub load_from_state {
@@ -79,30 +62,44 @@ sub close_file {
     my $self = shift;
     close($self->{_fh}) if defined $self->{_fh};
     $self->{_fh} = undef;
+    $self->_debug("closing $self->{_path}");
 }
 
-sub debug {
-    my ($self, $msg) = @_;
-    print STDERR "DEBUG: $msg\n" if $self->{_debug};
+sub read_lines {
+    my $self = shift;
+
+    $self->_check_handle;
+    my @lines = readline($self->{_fh});
+    die Stateful::Tailer::Exception->new(
+        "could not readline from $self->{_path}: $!") if $!;
+
+    $self->_debug("no lines read from $self->{_path}") if @lines == 0;
+
+    # Update file state.
+    $self->{_pos} = $self->{_fh}->tell;
+    $self->_load_stat;
+
+    return \@lines;
 }
 
 sub _check_handle {
     my $self = shift;
 
-    if(defined $self->{_fh}) {
-        # Detect file rotations/truncations.
-        my @stat = $self->_get_stat($self->{_path});
-        if($stat[1] != $self->{_stat}->{ino}) {
-            $self->debug("$self->{_path} inode has changed");
-            $self->_reload;
-        }
-        elsif($stat[7] < $self->{_stat}->{size}) {
-            $self->debug("$self->{_path} is smaller than expected, possible truncation");
-            $self->_reload;
-        }
+    $self->_open_file if not defined $self->{_fh};
+
+    # Detect file rotations/truncations.
+    my @stat = $self->_get_stat($self->{_path});
+    if($self->{_stat}->{ino} and $stat[1] != $self->{_stat}->{ino}) {
+        $self->_debug("$self->{_path} inode has changed");
+        $self->_reload;
     }
-    else {
-        $self->_open_file;
+    elsif($self->{_stat}->{size} and $stat[7] < $self->{_stat}->{size}) {
+        $self->_debug("$self->{_path} is smaller than expected, possible truncation");
+        $self->_reload;
+    }
+    elsif($stat[7] < $self->{_pos}) {
+        $self->_debug("$self->{_path} saved position is greater than file size, possible truncation");
+        $self->_reload;
     }
 }
 
@@ -110,7 +107,6 @@ sub _reload {
     my $self = shift;
 
     $self->close_file;
-    $self->_load_stat;
     $self->{_pos} = 0; # Read from the start.
     $self->_open_file;
 }
@@ -123,6 +119,7 @@ sub _open_file {
             "could not stat $self->{_path}");
 
     $self->{_fh}->seek($self->{_pos}, 0);
+    $self->_debug("opening $self->{_path}, seeking to $self->{_pos}");
 }
 
 sub _load_stat {
@@ -141,6 +138,11 @@ sub _get_stat  {
         if @stats == 0;
 
     return @stats;
+}
+
+sub _debug {
+    my ($self, $msg) = @_;
+    print STDERR "DEBUG: $msg\n" if $self->{_debug};
 }
 
 =head1 AUTHOR

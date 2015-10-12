@@ -54,11 +54,11 @@ Constructor for the Stateful::Tailer class. On construction, the state file is a
 
 =over 4
 
-=item files I<required>
+=item files (I<required>)
 
 An ARRAY ref of file paths to tail.
 
-=item state_file I<required>
+=item state_file (I<required>)
 
 The path to the state file in which the state of each tailed file is recorded in YAML. If the specified file does not exist, it will be created automatically.
 
@@ -143,7 +143,10 @@ sub read {
             }
         };
 
-        print STDERR $@ if $@;
+        if($@) {
+            $self->_debug($@);
+            $file->close_file;
+        }
     }
     $self->_save_state;
 
@@ -159,7 +162,9 @@ Close all configured files. This is called automatically on destruction.
 =cut
 
 sub close_files {
-    $_->close_file for values %{shift->{_files}};
+    foreach(values %{shift->{_files}}) {
+        $_->close_file if defined $_;
+    }
 }
 
 #
@@ -172,6 +177,10 @@ sub _load_files {
         for @{$file_paths};
 }
 
+sub _debug {
+    my ($self, $msg) = @_;
+    print STDERR "DEBUG: $msg\n" if $self->{_debug};
+}
 
 sub _load_state {
     my $self = shift;
