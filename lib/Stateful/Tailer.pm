@@ -61,6 +61,7 @@ sub new {
         _include    => $args{include_patterns} || [],
         _exclude    => $args{exclude_patterns} || [],
         _read_cb    => $args{read_callback} || undef,
+        _debug      => $args{debug} || 0,
     };
     bless $self, $class;
 
@@ -118,7 +119,7 @@ sub close_files {
 
 sub _load_files {
     my ($self, $file_paths) = @_;
-    $self->{_files}->{$_} = Stateful::Tailer::File->new($_)
+    $self->{_files}->{$_} = Stateful::Tailer::File->new($_, $self->{_debug})
         for @{$file_paths};
 }
 

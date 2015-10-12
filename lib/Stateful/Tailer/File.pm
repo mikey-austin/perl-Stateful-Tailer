@@ -19,16 +19,17 @@ Internal class representing an individual tailed file.
 =cut
 
 sub new {
-    my ($class, $path) = @_;
+    my ($class, $path, $debug) = @_;
 
     die Stateful::Tailer::Exception->new("$path is not readable")
         if not -r $path;
 
     my $self = {
-        _path => $path,
-        _pos  => 0,
-        _fh   => undef,
-        _stat => {},
+        _path  => $path,
+        _pos   => 0,
+        _fh    => undef,
+        _stat  => {},
+        _debug => $debug || 0,
     };
     bless $self, $class;
 
@@ -80,15 +81,38 @@ sub close_file {
     $self->{_fh} = undef;
 }
 
+sub debug {
+    my ($self, $msg) = @_;
+    print STDERR "DEBUG: $msg\n" if $self->{_debug};
+}
+
 sub _check_handle {
     my $self = shift;
 
     if(defined $self->{_fh}) {
         # Detect file rotations/truncations.
+        my @stat = $self->_get_stat($self->{_path});
+        if($stat[1] != $self->{_stat}->{ino}) {
+            $self->debug("$self->{_path} inode has changed");
+            $self->_reload;
+        }
+        elsif($stat[7] < $self->{_stat}->{size}) {
+            $self->debug("$self->{_path} is smaller than expected, possible truncation");
+            $self->_reload;
+        }
     }
     else {
         $self->_open_file;
     }
+}
+
+sub _reload {
+    my $self = shift;
+
+    $self->close_file;
+    $self->_load_stat;
+    $self->{_pos} = 0; # Read from the start.
+    $self->_open_file;
 }
 
 sub _open_file {
@@ -103,12 +127,12 @@ sub _open_file {
 
 sub _load_stat {
     my $self = shift;
-    my $s = $self->{_stats};
+    my $s = $self->{_stat};
     ($s->{ino}, $s->{size}, $s->{atime}, $s->{mtime}, $s->{ctime})
-        = ($self->_get_stats)[1, 7, 8, 9, 10];
+        = ($self->_get_stat )[1, 7, 8, 9, 10];
 }
 
-sub _get_stats {
+sub _get_stat  {
     my ($self, $path) = @_;
     $path ||= $self->{_path};
 
