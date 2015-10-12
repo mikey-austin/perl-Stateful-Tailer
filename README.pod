@@ -39,11 +39,11 @@ Constructor for the Stateful::Tailer class. On construction, the state file is a
 
 =over 4
 
-=item files I<required>
+=item files (I<required>)
 
 An ARRAY ref of file paths to tail.
 
-=item state_file I<required>
+=item state_file (I<required>)
 
 The path to the state file in which the state of each tailed file is recorded in YAML. If the specified file does not exist, it will be created automatically.
 
