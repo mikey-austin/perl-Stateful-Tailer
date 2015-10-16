@@ -39,8 +39,10 @@ sub new {
 sub load_from_state {
     my ($self, $state) = @_;
 
-    $self->{"_$_"} = $state->{$self->{_path}}->{$_}
-        for qw/pos/;
+    foreach(qw/pos/) {
+        $self->{"_$_"} = $state->{$self->{_path}}->{$_}
+            if defined $state->{$self->{_path}}->{$_};
+    }
 
     $self->{_stat}->{$_} = $state->{$self->{_path}}->{$_}->{stat}->{$_}
         for qw/ino size atime mtime ctime/;

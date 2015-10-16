@@ -64,11 +64,11 @@ The path to the state file in which the state of each tailed file is recorded in
 
 =item include_patterns
 
-An ARRAY ref of regular expressions to which all returned lines must match. If this parameter is specified, any lines that do not match an expression in the list will be silently ignored.
+An ARRAY ref of regular expressions to which all returned lines must match. If this parameter is specified, any lines that do not match an expression in the list will be silently ignored. Defaults to an empty ARRAY ref.
 
 =item exclude_patterns
 
-An ARRAY ref of regular expressions. Any line matching an expression in this list will be ignored, including those lines that match expressions in B<include_patterns> (if specified).
+An ARRAY ref of regular expressions. Any line matching an expression in this list will be ignored, including those lines that match expressions in B<include_patterns> (if specified). Defaults to an empty ARRAY ref.
 
 =item read_callback
 
