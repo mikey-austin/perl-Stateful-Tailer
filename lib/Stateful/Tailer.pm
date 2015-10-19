@@ -23,7 +23,9 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-Tail multiple files and keep state between invocations. Calls to read to not block, so it may be integrated into other event loops. For example, it may be used in conjunction with Linux::Inotify2, where inotify triggers the reading based on the tailed files' events (ie IN_MODIFY OR IN_ATTRIB events).
+Tail multiple files and keep state between invocations. Calls to read will not block, so it may be integrated into other event loops.
+
+For example, it may be used in conjunction with Linux::Inotify2, where inotify triggers the reading based on the tailed files' events (eg IN_MODIFY OR IN_ATTRIB events).
 
     use Stateful::Tailer;
 
