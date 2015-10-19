@@ -128,7 +128,7 @@ sub _load_stat {
     my $self = shift;
     my $s = $self->{_stat};
     ($s->{ino}, $s->{size}, $s->{atime}, $s->{mtime}, $s->{ctime})
-        = ($self->_get_stat )[1, 7, 8, 9, 10];
+        = ($self->_get_stat)[1, 7, 8, 9, 10];
 }
 
 sub _get_stat  {

@@ -23,7 +23,7 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-Tail multiple files and keep state between invocations.
+Tail multiple files and keep state between invocations. Calls to read to not block, so it may be integrated into other event loops. For example, it may be used in conjunction with Linux::Inotify2, where inotify triggers the reading based on the tailed files' events (ie IN_MODIFY OR IN_ATTRIB events).
 
     use Stateful::Tailer;
 
@@ -31,7 +31,7 @@ Tail multiple files and keep state between invocations.
         files            => [ '/path/to/file1' ],
         include_patterns => [ 'greyd\[\d+\]:' ],
         except_patterns  => [ '^greylogd.*' ],
-        state_file       => "/tmp/tailer.state.$$",
+        state_file       => "/tmp/tailer.state",
         read_callback    => (
             sub {
                 my $lines = shift; # Array ref.
@@ -40,7 +40,7 @@ Tail multiple files and keep state between invocations.
         ),
     );
 
-    $tailer->read;
+    $tailer->read; # Does not block.
 
 This module is completely object-oriented, with minimal dependencies (eg only YAML at this stage).
 
@@ -109,7 +109,7 @@ sub new {
 
 Read all lines from the specified files starting from the last saved position. If the state file does not exist, start reading from the beginning. The state is then saved after all files are read.
 
-The specified files are processed in sequence.
+The specified files are processed in sequence. Calls to this subroutine will not block.
 
 =cut
 
