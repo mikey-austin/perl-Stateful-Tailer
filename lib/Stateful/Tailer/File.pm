@@ -3,6 +3,7 @@ package Stateful::Tailer::File;
 use 5.006;
 use strict;
 use warnings;
+use filetest 'access';
 
 use Stateful::Tailer::Exception;
 
@@ -74,8 +75,6 @@ sub read_lines {
     my @lines = readline($self->{_fh});
     die Stateful::Tailer::Exception->new(
         "could not readline from $self->{_path}: $!") if $!;
-
-    $self->_debug("no lines read from $self->{_path}") if @lines == 0;
 
     # Update file state.
     $self->{_pos} = $self->{_fh}->tell;
