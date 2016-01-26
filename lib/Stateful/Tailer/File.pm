@@ -115,7 +115,7 @@ sub _reload {
 sub _open_file {
     my $self = shift;
 
-    open($self->{_fh}, '<', $self->{_path})
+    $self->{_fh} = IO::File->new($self->{_path}, '<')
         or die Stateful::Tailer::Exception->new(
             "could not stat $self->{_path}");
 
